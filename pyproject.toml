@@ -1,0 +1,36 @@
+[project]
+name = "steel-demand-forecast"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+
+dependencies = [
+    "accelerate>=1.13.0",
+    "databricks-connect>=18.0.0",
+    "dotenv>=0.9.9",
+    "fastparquet>=2026.5.0",
+    "ipeadatapy>=0.1.9",
+    "ipykernel>=7.2.0",
+    "matplotlib>=3.10.9",
+    "mlxtend>=0.24.0",
+    "numpy>=2.4.6",
+    "openpyxl>=3.1.5",
+    "optuna>=4.9.0",
+    "pandas>=3.0.3",
+    "plotly>=6.7.0",
+    "pyarrow>=24.0.0",
+    "python-bcb>=0.4.0",
+    "requests>=2.34.2",
+    "scikit-learn>=1.8.0",
+    "scipy>=1.17.1",
+    "seaborn>=0.13.2",
+    "sentence-transformers>=5.5.1",
+    "sidrapy>=0.1.4",
+    "statsmodels>=0.14.6",
+    "sympy>=1.14.0",
+    "transformers>=5.9.0",
+    "xgboost>=3.2.0",
+    "xlrd>=2.0.2",
+    "yfinance>=1.4.1",
+]

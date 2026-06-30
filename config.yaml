@@ -1,0 +1,146 @@
+paths:
+  # Entradas (dados/raw)
+  anfavea_input: "./dados/raw/anfavea_autoveiculos.xlsx"
+  cno_input: "./dados/raw/cno.csv"
+  performance_input: "./dados/raw/Performance-Mensal_2026.05.xls"
+  sidra_sinapi_raw: "./dados/raw/sidra_sinapi_m2.xlsx"
+  sidra_pim_pf_raw: "./dados/raw/sidra_pim_pf.xlsx"
+
+  # Saídas (dados/silver)
+  anfavea_output: "./dados/silver/anfavea_producao_veiculos.xlsx"
+  cno_output: "./dados/silver/gov_br_cno.xlsx"
+  performance_output: "./dados/silver/performance.xlsx"
+  ipea_selic_output: "./dados/silver/ipea_selic.xlsx"
+  ipea_fbc_output: "./dados/silver/ipea_fbc.xlsx"
+  ipea_cambio_output: "./dados/silver/ipea_cambio.xlsx"
+  bcb_selic_output: "./dados/silver/bc_sgs_projecao_selic.xlsx"
+  bcb_ipca_pib_output: "./dados/silver/bc_sgs_ipca_pib.xlsx"
+  bcb_credito_output: "./dados/silver/bc_sgs_operacoes_credito_industria.xlsx"
+  sidra_sinapi_output: "./dados/silver/sidra_sinapi_m2.xlsx"
+  sidra_pim_pf_output: "./dados/silver/sidra_pim_pf.xlsx"
+  sidra_ipp_output: "./dados/silver/sidra_ipp.xlsx"
+  sidra_pnad_output: "./dados/silver/sidra_pnad_ocupacao.xlsx"
+
+  # Saídas (dados/gold)
+  silver_dir: "./dados/silver"
+  tabela_mestre_output: "./dados/gold/tabela_mestre.xlsx"
+
+filters:
+  date_start: "2012-12-31"
+  date_end: "2026-06-01"
+
+api:
+  ipea:
+    selic: "PAN12_TJOVER12"
+    fbc: "GAC12_INDFBCFDESSAZ12"
+    cambio: "GM366_ERC366"
+  bcb:
+    selic_periodo_1_inicio: "2012-12-31"
+    selic_periodo_1_fim: "2019-12-31"
+    selic_periodo_2_inicio: "2020-01-01"
+    codigos:
+      ipca: 433
+      pib_mensal: 4380
+      credito_construcao: 22030
+      credito_infraestrutura: 27725
+      credito_metalurgia: 27748
+  sidra:
+    sinapi:
+      table_code: "647"
+      period: "last 144"
+      classifications:
+        "314": "all"
+        "41": "all"
+    pim_pf:
+      table_code: "8888"
+      period: "last 144"
+      classifications:
+        "544": "all"
+    ipp:
+      table_code: "6903"
+      period: "last 144"
+      classifications:
+        "842": "all"
+    pnad:
+      table_code: "6379"
+      period: "last 150"
+
+geo:
+  uf_codes:
+    - "11"
+    - "12"
+    - "13"
+    - "14"
+    - "15"
+    - "16"
+    - "17"
+    - "21"
+    - "22"
+    - "23"
+    - "24"
+    - "25"
+    - "26"
+    - "27"
+    - "28"
+    - "29"
+    - "31"
+    - "32"
+    - "33"
+    - "35"
+    - "41"
+    - "42"
+    - "43"
+    - "50"
+    - "51"
+    - "52"
+    - "53"
+
+sectors:
+  pim_pf:
+    variavel: "PIMPF - Número-índice (2022=100)"
+    secoes:
+      - "3.24 Metalurgia"
+      - "3.28 Fabricação de máquinas e equipamentos"
+      - "3.29 Fabricação de veículos automotores, reboques e carrocerias"
+      - "3.30 Fabricação de outros equipamentos de transporte, exceto veículos automotores"
+  ipp:
+    variavel: "IPP - Número-índice (dezembro de 2018 = 100)"
+    secoes:
+      - "24 METALURGIA"
+      - "25 FABRICAÇÃO DE PRODUTOS DE METAL, EXCETO MÁQUINAS E EQUIPAMENTOS"
+      - "27 FABRICAÇÃO DE MÁQUINAS, APARELHOS E MATERIAIS ELÉTRICOS"
+      - "28 FABRICAÇÃO DE MÁQUINAS E EQUIPAMENTOS"
+      - "29 FABRICAÇÃO DE VEÍCULOS AUTOMOTORES, REBOQUES E CARROCERIAS"
+      - "30 FABRICAÇÃO DE OUTROS EQUIPAMENTOS DE TRANSPORTE, EXCETO VEÍCULOS AUTOMOTORES"
+  pnad:
+    variavel: "Nível da ocupação, na semana de referência, das pessoas de 14 anos ou mais de idade"
+
+anfavea:
+  categorias:
+    - "AUTOVEÍCULOS TOTAL"
+    - "AUTOMÓVEIS"
+    - "COMERCIAIS LEVES"
+    - "CAMINHÕES"
+    - "ÔNIBUS"
+  variaveis:
+    - "Emplacamento Total"
+    - "Emplacamento Nacionais"
+    - "Emplacamento Importados"
+    - "Produção"
+    - "Exportação"
+  skiprows: 3
+
+cno:
+  encoding: "latin-1"
+  colunas:
+    - "Nome do pais"
+    - "Data de início"
+    - "Nome"
+    - "Nome do município"
+    - "Tipo de logradouro"
+    - "Estado"
+    - "Unidade de medida"
+    - "Área total"
+    - "Situação"
+  pais_filtro: "BRASIL"
+  estado_excluir: "EX"
