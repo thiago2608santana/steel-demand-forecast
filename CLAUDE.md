@@ -72,4 +72,4 @@ As pastas `dados/raw/`, `dados/silver/` e `dados/gold/` estão no `.gitignore`. 
 - **ANFAVEA usa cabeçalho mesclado**: o Excel tem layout de duas linhas de cabeçalho com células mescladas. A função `_renomear_colunas` em `etl/anfavea.py` trata isso ciclando o índice de variável a cada `len(variaveis)` colunas.
 - **CNO usa encoding latin-1**: o CSV do governo vem em latin-1, não UTF-8.
 - **Performance usa formato wide**: o `.xls` do IABr tem anos e meses em linhas separadas com forward-fill. O parser localiza essas linhas dinamicamente pelo conteúdo.
-- **Tabela mestre usa inner join**: o merge em `etl/tabela_mestre.py` é inner, então a cobertura temporal é limitada pelo menor período comum entre as fontes (atualmente 2014-03).
+- **Tabela mestre usa left join**: o merge em `etl/tabela_mestre.py` é left (ancorado no alvo), com `ffill`/`bfill` aplicado às colunas numéricas para preencher lacunas onde uma feature começa depois do alvo. Valores ausentes do SIDRA (`-`, `...`) viram `NaN` em `ajustar_valores`, não `0.0`.

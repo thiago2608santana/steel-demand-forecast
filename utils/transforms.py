@@ -30,10 +30,10 @@ def fill_missing(df: pd.DataFrame, fill_value=0) -> pd.DataFrame:
 
 
 def ajustar_valores(valor) -> float:
-    """Converte strings de valores ausentes do SIDRA ('-', '...') para 0;
+    """Converte strings de valores ausentes do SIDRA ('-', '...') para NaN;
     caso contrário converte para float."""
     if valor in ("-", "..."):
-        return 0.0
+        return float("nan")
     return float(valor)
 
 

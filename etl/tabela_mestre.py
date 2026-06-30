@@ -84,7 +84,12 @@ def _merge_features(df_alvo: pd.DataFrame, silver_dir: str) -> pd.DataFrame:
     for arquivo in _ORDEM_MERGE:
         path = os.path.join(silver_dir, arquivo)
         df_temp = pd.read_excel(path, engine="openpyxl")
-        df = df.merge(df_temp, on="Date")
+        df = df.merge(df_temp, on="Date", how="left")
         logger.info("Merged: %s  → shape %s", arquivo, df.shape)
+
+    # Preencher NaN gerados pelo left join: forward-fill e depois backward-fill
+    # para as primeiras linhas onde alguma feature começa depois do target.
+    numeric_cols = df.select_dtypes(include="number").columns
+    df[numeric_cols] = df[numeric_cols].ffill().bfill()
 
     return df
