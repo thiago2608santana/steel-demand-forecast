@@ -8,7 +8,7 @@ import os
 
 import pandas as pd
 
-from utils.transforms import salvar_excel
+from utils.transforms import salvar_excel, validar_output
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ def processar_tabela_mestre(cfg: dict) -> pd.DataFrame:
     df_alvo = _extrair_variavel_alvo(cfg["paths"]["performance_output"])
     df_final = _merge_features(df_alvo, silver_dir)
 
+    validar_output(df_final, "tabela_mestre", min_linhas=60, colunas_obrigatorias=["Date", "Consumo Aparente"])
     salvar_excel(df_final, output_path)
     logger.info("Tabela mestre concluída: %s features, %s observações.", df_final.shape[1] - 1, df_final.shape[0])
     return df_final
@@ -54,11 +55,33 @@ def _extrair_variavel_alvo(performance_path: str) -> pd.DataFrame:
 
 
 def _merge_features(df_alvo: pd.DataFrame, silver_dir: str) -> pd.DataFrame:
-    """Faz merge de todos os arquivos silver elegíveis sobre a variável alvo."""
-    arquivos = sorted(f for f in os.listdir(silver_dir) if f.endswith(".xlsx") and f not in _ARQUIVOS_EXCLUIR)
+    """Faz merge dos arquivos silver elegíveis sobre a variável alvo.
+
+    A ordem é determinística e explícita para garantir reprodutibilidade.
+    Arquivos presentes em silver_dir mas ausentes desta lista são ignorados,
+    evitando inclusão acidental de arquivos temporários ou experimentais.
+    """
+    _ORDEM_MERGE = [
+        "anfavea_producao_veiculos.xlsx",
+        "bc_sgs_ipca_pib.xlsx",
+        "bc_sgs_operacoes_credito_industria.xlsx",
+        "gov_br_cno.xlsx",
+        "ipea_cambio.xlsx",
+        "ipea_selic.xlsx",
+        "sidra_ipp.xlsx",
+        "sidra_pim_pf.xlsx",
+        "sidra_pnad_ocupacao.xlsx",
+        "sidra_sinapi_m2.xlsx",
+    ]
+
+    ausentes = [f for f in _ORDEM_MERGE if not os.path.exists(os.path.join(silver_dir, f))]
+    if ausentes:
+        raise FileNotFoundError(
+            f"Arquivos silver ausentes — rode os pipelines correspondentes antes de tabela_mestre: {ausentes}"
+        )
 
     df = df_alvo.copy()
-    for arquivo in arquivos:
+    for arquivo in _ORDEM_MERGE:
         path = os.path.join(silver_dir, arquivo)
         df_temp = pd.read_excel(path, engine="openpyxl")
         df = df.merge(df_temp, on="Date")

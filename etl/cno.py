@@ -6,7 +6,7 @@ import logging
 
 import pandas as pd
 
-from utils.transforms import fill_missing, filter_by_date, salvar_excel
+from utils.transforms import fill_missing, filter_by_date, salvar_excel, validar_output
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,7 @@ def processar_cno(cfg: dict) -> pd.DataFrame:
     df_pivot = filter_by_date(df_pivot, "Date", date_start)
     fill_missing(df_pivot)
 
+    validar_output(df_pivot, "cno", min_linhas=24, colunas_obrigatorias=["Date", "m2"], date_col="Date")
     salvar_excel(df_pivot, path_output)
     logger.info("CNO concluído.")
     return df_pivot

@@ -6,7 +6,7 @@ import logging
 
 import pandas as pd
 
-from utils.transforms import filter_by_date, salvar_excel
+from utils.transforms import filter_by_date, salvar_excel, validar_output
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,7 @@ def processar_anfavea(cfg: dict) -> pd.DataFrame:
     df = filter_by_date(df, "Date", date_start, date_end)
     df = _extrair_producao(df)
 
+    validar_output(df, "anfavea", min_linhas=24, colunas_obrigatorias=["Date", "producao_total"])
     salvar_excel(df, path_output)
     logger.info("ANFAVEA concluído.")
     return df

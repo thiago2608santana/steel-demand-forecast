@@ -1,6 +1,7 @@
 """Funções utilitárias de limpeza e transformação de dados."""
 import datetime
 import logging
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
@@ -86,6 +87,51 @@ def pivot_mensal(
 
 
 def salvar_excel(df: pd.DataFrame, path: str) -> None:
-    """Salva DataFrame em Excel e registra no log."""
+    """Salva DataFrame em Excel, criando diretórios intermediários se necessário."""
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     df.to_excel(path, index=False, engine="openpyxl")
     logger.info("Salvo: %s  (%d linhas, %d colunas)", path, len(df), len(df.columns))
+
+
+def validar_output(
+    df: pd.DataFrame,
+    nome: str,
+    min_linhas: int = 12,
+    colunas_obrigatorias: Optional[list] = None,
+    date_col: str = "Date",
+    meses_recentes: int = 6,
+) -> None:
+    """Valida o DataFrame de output de um pipeline antes de persistir.
+
+    Lança ValueError se alguma condição crítica falhar, impedindo que arquivos
+    corrompidos ou incompletos sejam salvos em silver/gold.
+
+    Args:
+        df: DataFrame a validar.
+        nome: Nome do pipeline (usado nas mensagens de erro).
+        min_linhas: Número mínimo aceitável de linhas.
+        colunas_obrigatorias: Colunas que devem estar presentes.
+        date_col: Nome da coluna de data para checar atualidade.
+        meses_recentes: Quantos meses atrás a data máxima pode estar no máximo.
+    """
+    erros = []
+
+    if len(df) < min_linhas:
+        erros.append(f"apenas {len(df)} linhas (mínimo esperado: {min_linhas})")
+
+    for col in (colunas_obrigatorias or []):
+        if col not in df.columns:
+            erros.append(f"coluna obrigatória ausente: '{col}'")
+        elif df[col].isna().all():
+            erros.append(f"coluna '{col}' está completamente nula")
+
+    if date_col in df.columns:
+        data_max = pd.to_datetime(df[date_col]).max()
+        limite = pd.Timestamp.now() - pd.DateOffset(months=meses_recentes)
+        if data_max < limite:
+            erros.append(f"data máxima ({data_max.date()}) está há mais de {meses_recentes} meses no passado")
+
+    if erros:
+        raise ValueError(f"[{nome}] Validação falhou: {'; '.join(erros)}")
+
+    logger.info("[%s] Validação OK — %d linhas, %d colunas.", nome, len(df), len(df.columns))

@@ -8,6 +8,7 @@ from utils.transforms import (
     filter_by_date,
     pivot_mensal,
     salvar_excel,
+    validar_output,
 )
 from utils.viz import formatar_escala
 
@@ -21,4 +22,5 @@ __all__ = [
     "formatar_escala",
     "pivot_mensal",
     "salvar_excel",
+    "validar_output",
 ]

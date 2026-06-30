@@ -1,13 +1,15 @@
 """Pipeline ETL para dados de Performance Mensal do setor siderúrgico.
 
-Fonte: arquivo manual fornecido pela equipe (Dados/raw/Performance-Mensal_*.xls)
+Fonte: arquivo manual fornecido pela equipe (dados/raw/Performance-Mensal_*.xls)
+O arquivo mais recente em dados/raw/ é selecionado automaticamente via glob.
 """
 import logging
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from utils.transforms import salvar_excel
+from utils.transforms import salvar_excel, validar_output
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +27,9 @@ _MAIN_CATEGORIES = [
 def processar_performance(cfg: dict) -> pd.DataFrame:
     """Extrai, transforma e salva os dados de Performance Mensal.
 
-    Lê o arquivo Excel de Performance, converte de wide para long format
-    e persiste o resultado em dados/silver.
+    Seleciona automaticamente o arquivo Performance-Mensal mais recente em
+    dados/raw/ via glob. Se `performance_input` estiver definido no config,
+    usa esse caminho como fallback explícito.
 
     Args:
         cfg: Dicionário de configuração com paths.
@@ -34,14 +37,31 @@ def processar_performance(cfg: dict) -> pd.DataFrame:
     Returns:
         DataFrame no formato long com colunas Categoria, Especificação, Data, Valor.
     """
-    path_input = cfg["paths"]["performance_input"]
+    path_input = _resolver_arquivo_performance(cfg)
     path_output = cfg["paths"]["performance_output"]
 
     logger.info("Carregando Performance: %s", path_input)
     df = _extrair_performance(path_input)
+    validar_output(df, "performance", min_linhas=24, colunas_obrigatorias=["Data", "Valor", "Categoria"], date_col="Data")
     salvar_excel(df, path_output)
     logger.info("Performance concluído.")
     return df
+
+
+def _resolver_arquivo_performance(cfg: dict) -> str:
+    """Retorna o caminho do arquivo de performance mais recente em dados/raw/.
+
+    O arquivo mais recente é determinado pelo nome (Performance-Mensal_YYYY.MM),
+    garantindo que novos arquivos mensais sejam coletados automaticamente sem
+    alterar o config.yaml.
+    """
+    raw_dir = Path(cfg["paths"]["anfavea_input"]).parent
+    candidatos = sorted(raw_dir.glob("Performance-Mensal_*.xls*"))
+    if not candidatos:
+        raise FileNotFoundError(f"Nenhum arquivo Performance-Mensal_*.xls* encontrado em {raw_dir}")
+    arquivo = candidatos[-1]
+    logger.info("Arquivo de performance selecionado: %s", arquivo.name)
+    return str(arquivo)
 
 
 def _extrair_performance(file_path: str) -> pd.DataFrame:
