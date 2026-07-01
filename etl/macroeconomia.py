@@ -115,7 +115,7 @@ def extrair_cambio_ipea(cfg: dict) -> pd.DataFrame:
     df.drop(["CODE", "RAW DATE", "DAY", "MONTH", "YEAR"], axis=1, inplace=True)
     df.fillna(0, inplace=True)
     df = df.groupby(pd.Grouper(key="Date", freq="MS")).mean().reset_index()
-    df.rename(columns={"VALUE (R$ ou u.m.c.)": "valor_cambio_reais"}, inplace=True)
+    df.rename(columns={"VALUE (R$)": "valor_cambio_reais"}, inplace=True)
 
     salvar_excel(df, cfg["paths"]["ipea_cambio_output"])
     return df
