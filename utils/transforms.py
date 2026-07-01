@@ -93,6 +93,46 @@ def salvar_excel(df: pd.DataFrame, path: str) -> None:
     logger.info("Salvo: %s  (%d linhas, %d colunas)", path, len(df), len(df.columns))
 
 
+RENOMEIA_COLUNAS_MESTRE = {
+    "Date": "data",
+    "Consumo Aparente": "consumo_aparente",
+    "Outra": "cno_outras_unidades",
+    "m2": "cno_m2",
+    "m3": "cno_m3",
+    "km": "cno_km",
+    "kva": "cno_kva",
+    "kw": "cno_kw",
+    "3.24 Metalurgia": "pim_metalurgia",
+    "3.28 Fabricação de máquinas e equipamentos": "pim_fab_maq_equip",
+    "3.29 Fabricação de veículos automotores, reboques e carrocerias": "pim_fab_veic_reboque_carroceria",
+    "3.30 Fabricação de outros equipamentos de transporte, exceto veículos automotores": "pim_fab_outros_equip_transporte",
+    "IPCA": "ipca",
+    "PIB_mensal": "pib_mensal",
+    "AUTOVEÍCULOS TOTAL_Produção": "anfavea_producao_autoveiculos_total",
+    "AUTOMÓVEIS_Produção": "anfavea_producao_automoveis",
+    "COMERCIAIS LEVES_Produção": "anfavea_producao_comerciais_leves",
+    "CAMINHÕES_Produção": "anfavea_producao_caminhoes",
+    "ÔNIBUS_Produção": "anfavea_producao_onibus",
+    "producao_total": "anfavea_producao_total",
+    "24 METALURGIA": "ipp_metalurgia",
+    "25 FABRICAÇÃO DE PRODUTOS DE METAL, EXCETO MÁQUINAS E EQUIPAMENTOS": "ipp_fab_produtos_metal",
+    "27 FABRICAÇÃO DE MÁQUINAS, APARELHOS E MATERIAIS ELÉTRICOS": "ipp_fab_maq_apar_mat_eletricos",
+    "28 FABRICAÇÃO DE MÁQUINAS E EQUIPAMENTOS": "ipp_fab_maq_equip",
+    "29 FABRICAÇÃO DE VEÍCULOS AUTOMOTORES, REBOQUES E CARROCERIAS": "ipp_fab_veic_reboque_carroceria",
+    "30 FABRICAÇÃO DE OUTROS EQUIPAMENTOS DE TRANSPORTE, EXCETO VEÍCULOS AUTOMOTORES": "ipp_fab_outros_equip_transporte",
+    "Nível da ocupação, na semana de referência, das pessoas de 14 anos ou mais de idade": "pnad_taxa_ocupacao",
+}
+
+
+def padronizar_colunas_mestre(df: pd.DataFrame) -> pd.DataFrame:
+    """Renomeia as colunas da tabela mestre para o padrão snake_case do projeto.
+
+    Usa `RENOMEIA_COLUNAS_MESTRE` como fonte única do mapeamento. Colunas
+    ausentes do dicionário (já no padrão, ex: `taxa_selic_aa`) são mantidas.
+    """
+    return df.rename(columns=RENOMEIA_COLUNAS_MESTRE)
+
+
 def validar_output(
     df: pd.DataFrame,
     nome: str,

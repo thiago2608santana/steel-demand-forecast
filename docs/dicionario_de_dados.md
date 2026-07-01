@@ -276,48 +276,69 @@ A tabela mestre é o artefato final do pipeline ETL, gerada por `etl/tabela_mest
 | **Cobertura efetiva** | 2014-03 até presente (limitada pelo menor período comum entre as fontes) |
 | **Dimensões** | ~143 observações × 32 colunas |
 
+### Convenção de nomes de coluna
+
+As colunas da tabela mestre seguem `snake_case`, minúsculas, sem acento. O
+mapeamento é aplicado por `padronizar_colunas_mestre` (`utils/transforms.py`),
+a partir do dicionário `RENOMEIA_COLUNAS_MESTRE` — fonte única de verdade do
+rename. Os arquivos silver individuais mantêm os nomes originais das fontes
+(ex: `24 METALURGIA`, `Date`); a padronização ocorre só na consolidação gold.
+
+Regras aplicadas:
+
+- Códigos numéricos de classificação (CNAE/SIDRA) são removidos do nome — já
+  documentados aqui, não precisam estar na coluna.
+- Colunas de PIM-PF e IPP recebem prefixo de fonte (`pim_`, `ipp_`) porque
+  descrevem os mesmos setores (metalurgia, máquinas...) com métricas
+  diferentes (índice de produção física vs. índice de preço) — sem prefixo
+  colidiriam. O mesmo vale para `cno_`, `anfavea_`, `pnad_`.
+- Termos recorrentes e autoexplicativos são abreviados de forma fixa:
+  `fabricação` → `fab`, `máquinas` → `maq`, `equipamentos` → `equip`,
+  `aparelhos` → `apar`, `materiais` → `mat`, `veículos` → `veic`.
+- Stopwords (`de`, `da`, `e`, `exceto`...) são descartadas.
+
 ### Variável Alvo
 
 | Coluna | Tipo | Fonte | Descrição |
 |---|---|---|---|
-| `Consumo Aparente` | float | Performance (IABr) | Consumo aparente mensal de aços longos no Brasil (mil toneladas) |
+| `consumo_aparente` | float | Performance (IABr) | Consumo aparente mensal de aços longos no Brasil (mil toneladas) |
 
 ### Features
 
-| Coluna | Tipo | Fonte |
-|---|---|---|
-| `Date` | date | — |
-| `custo_projeto_m2` | float | SIDRA / SINAPI |
-| `operacoes_credito_industria_construcao` | float | BCB / SGS |
-| `operacoes_credito_industria_infraestrutura` | float | BCB / SGS |
-| `operacoes_credito_industria_metalurgia_siderurgia` | float | BCB / SGS |
-| `Outra` | float | CNO |
-| `km` | float | CNO |
-| `kva` | float | CNO |
-| `kw` | float | CNO |
-| `m2` | float | CNO |
-| `m3` | float | CNO |
-| `3.24 Metalurgia` | float | SIDRA / PIM-PF |
-| `3.28 Fabricação de máquinas e equipamentos` | float | SIDRA / PIM-PF |
-| `3.29 Fabricação de veículos automotores, reboques e carrocerias` | float | SIDRA / PIM-PF |
-| `3.30 Fabricação de outros equipamentos de transporte, exceto veículos automotores` | float | SIDRA / PIM-PF |
-| `IPCA` | float | BCB / SGS |
-| `PIB_mensal` | float | BCB / SGS |
-| `AUTOVEÍCULOS TOTAL_Produção` | int | ANFAVEA |
-| `AUTOMÓVEIS_Produção` | int | ANFAVEA |
-| `COMERCIAIS LEVES_Produção` | int | ANFAVEA |
-| `CAMINHÕES_Produção` | int | ANFAVEA |
-| `ÔNIBUS_Produção` | int | ANFAVEA |
-| `producao_total` | int | ANFAVEA |
-| `valor_cambio_reais` | float | IPEA |
-| `24 METALURGIA` | float | SIDRA / IPP |
-| `25 FABRICAÇÃO DE PRODUTOS DE METAL, EXCETO MÁQUINAS E EQUIPAMENTOS` | float | SIDRA / IPP |
-| `27 FABRICAÇÃO DE MÁQUINAS, APARELHOS E MATERIAIS ELÉTRICOS` | float | SIDRA / IPP |
-| `28 FABRICAÇÃO DE MÁQUINAS E EQUIPAMENTOS` | float | SIDRA / IPP |
-| `29 FABRICAÇÃO DE VEÍCULOS AUTOMOTORES, REBOQUES E CARROCERIAS` | float | SIDRA / IPP |
-| `30 FABRICAÇÃO DE OUTROS EQUIPAMENTOS DE TRANSPORTE, EXCETO VEÍCULOS AUTOMOTORES` | float | SIDRA / IPP |
-| `Nível da ocupação, na semana de referência, das pessoas de 14 anos ou mais de idade` | float | SIDRA / PNAD |
-| `taxa_selic_aa` | float | IPEA |
+| Coluna | Tipo | Fonte | Coluna original (silver) |
+|---|---|---|---|
+| `data` | date | — | `Date` |
+| `custo_projeto_m2` | float | SIDRA / SINAPI | *(inalterada)* |
+| `operacoes_credito_industria_construcao` | float | BCB / SGS | *(inalterada)* |
+| `operacoes_credito_industria_infraestrutura` | float | BCB / SGS | *(inalterada)* |
+| `operacoes_credito_industria_metalurgia_siderurgia` | float | BCB / SGS | *(inalterada)* |
+| `cno_outras_unidades` | float | CNO | `Outra` |
+| `cno_km` | float | CNO | `km` |
+| `cno_kva` | float | CNO | `kva` |
+| `cno_kw` | float | CNO | `kw` |
+| `cno_m2` | float | CNO | `m2` |
+| `cno_m3` | float | CNO | `m3` |
+| `pim_metalurgia` | float | SIDRA / PIM-PF | `3.24 Metalurgia` |
+| `pim_fab_maq_equip` | float | SIDRA / PIM-PF | `3.28 Fabricação de máquinas e equipamentos` |
+| `pim_fab_veic_reboque_carroceria` | float | SIDRA / PIM-PF | `3.29 Fabricação de veículos automotores, reboques e carrocerias` |
+| `pim_fab_outros_equip_transporte` | float | SIDRA / PIM-PF | `3.30 Fabricação de outros equipamentos de transporte, exceto veículos automotores` |
+| `ipca` | float | BCB / SGS | `IPCA` |
+| `pib_mensal` | float | BCB / SGS | `PIB_mensal` |
+| `anfavea_producao_autoveiculos_total` | int | ANFAVEA | `AUTOVEÍCULOS TOTAL_Produção` |
+| `anfavea_producao_automoveis` | int | ANFAVEA | `AUTOMÓVEIS_Produção` |
+| `anfavea_producao_comerciais_leves` | int | ANFAVEA | `COMERCIAIS LEVES_Produção` |
+| `anfavea_producao_caminhoes` | int | ANFAVEA | `CAMINHÕES_Produção` |
+| `anfavea_producao_onibus` | int | ANFAVEA | `ÔNIBUS_Produção` |
+| `anfavea_producao_total` | int | ANFAVEA | `producao_total` |
+| `valor_cambio_reais` | float | IPEA | *(inalterada)* |
+| `ipp_metalurgia` | float | SIDRA / IPP | `24 METALURGIA` |
+| `ipp_fab_produtos_metal` | float | SIDRA / IPP | `25 FABRICAÇÃO DE PRODUTOS DE METAL, EXCETO MÁQUINAS E EQUIPAMENTOS` |
+| `ipp_fab_maq_apar_mat_eletricos` | float | SIDRA / IPP | `27 FABRICAÇÃO DE MÁQUINAS, APARELHOS E MATERIAIS ELÉTRICOS` |
+| `ipp_fab_maq_equip` | float | SIDRA / IPP | `28 FABRICAÇÃO DE MÁQUINAS E EQUIPAMENTOS` |
+| `ipp_fab_veic_reboque_carroceria` | float | SIDRA / IPP | `29 FABRICAÇÃO DE VEÍCULOS AUTOMOTORES, REBOQUES E CARROCERIAS` |
+| `ipp_fab_outros_equip_transporte` | float | SIDRA / IPP | `30 FABRICAÇÃO DE OUTROS EQUIPAMENTOS DE TRANSPORTE, EXCETO VEÍCULOS AUTOMOTORES` |
+| `pnad_taxa_ocupacao` | float | SIDRA / PNAD | `Nível da ocupação, na semana de referência, das pessoas de 14 anos ou mais de idade` |
+| `taxa_selic_aa` | float | IPEA | *(inalterada)* |
 
 ### Arquivos silver excluídos da tabela mestre
 

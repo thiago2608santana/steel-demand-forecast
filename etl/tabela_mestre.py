@@ -8,7 +8,7 @@ import os
 
 import pandas as pd
 
-from utils.transforms import salvar_excel, validar_output
+from utils.transforms import padronizar_colunas_mestre, salvar_excel, validar_output
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,12 @@ def processar_tabela_mestre(cfg: dict) -> pd.DataFrame:
 
     df_alvo = _extrair_variavel_alvo(cfg["paths"]["performance_output"])
     df_final = _merge_features(df_alvo, silver_dir)
+    df_final = padronizar_colunas_mestre(df_final)
 
-    validar_output(df_final, "tabela_mestre", min_linhas=60, colunas_obrigatorias=["Date", "Consumo Aparente"])
+    validar_output(
+        df_final, "tabela_mestre", min_linhas=60,
+        colunas_obrigatorias=["data", "consumo_aparente"], date_col="data",
+    )
     salvar_excel(df_final, output_path)
     logger.info("Tabela mestre concluída: %s features, %s observações.", df_final.shape[1] - 1, df_final.shape[0])
     return df_final
