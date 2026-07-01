@@ -23,12 +23,12 @@ steel-demand-forecast/
 │   ├── transforms.py      # Funções de limpeza e transformação de dados
 │   └── viz.py             # Funções de formatação para visualizações
 │
-├── notebooks/             # Análise exploratória e debug
+├── notebooks/             # Análise exploratória e modelagem
+│   ├── pipeline_ml.ipynb          # Pipeline completo de ML: feature eng, SARIMA, SARIMAX, XGBoost
+│   ├── tabela_mestre.ipynb        # Versão interativa da construção da tabela mestre
 │   ├── exploracao.ipynb
 │   ├── exploracao_anfavea.ipynb
-│   ├── exploracao_cno.ipynb
-│   ├── exploracao_tabela_mestre.ipynb
-│   └── tabela_mestre.ipynb   # Versão interativa da construção da tabela mestre
+│   └── exploracao_cno.ipynb
 │
 ├── dados/
 │   ├── raw/               # Arquivos manuais de entrada (não versionados)

@@ -22,7 +22,9 @@ python run_etl.py tabela_mestre            # consolida silver → gold
 - **`etl/`** — um arquivo por fonte de dados; cada pipeline recebe `cfg: dict` como único argumento
 - **`utils/transforms.py`** — funções compartilhadas de limpeza/transformação (SIDRA, datas, Excel)
 - **`utils/viz.py`** — helpers de formatação para gráficos
-- **`notebooks/`** — exploração e debug; `tabela_mestre.ipynb` replica o pipeline gold de forma interativa
+- **`notebooks/pipeline_ml.ipynb`** — pipeline completo de modelagem: feature engineering, seleção de variáveis, SARIMA, SARIMAX e XGBoost com Optuna; inclui previsão recursiva para horizonte futuro
+- **`notebooks/tabela_mestre.ipynb`** — replica o pipeline gold de forma interativa
+- **`notebooks/`** — demais notebooks de exploração por fonte de dados
 
 ## Convenções importantes
 
@@ -65,6 +67,10 @@ As pastas `dados/raw/`, `dados/silver/` e `dados/gold/` estão no `.gitignore`. 
 | `openpyxl` | Leitura e escrita de `.xlsx` |
 | `pandas` | Transformações e merges |
 | `pyyaml` | Carregamento do `config.yaml` |
+| `statsmodels` | SARIMA e SARIMAX (`tsa.statespace.sarimax.SARIMAX`) |
+| `xgboost` | Modelo XGBoost (`XGBRegressor`) |
+| `optuna` | Tuning de hiperparâmetros do XGBoost |
+| `scikit-learn` | Métricas, `TimeSeriesSplit`, `permutation_importance` |
 
 ## Armadilhas conhecidas
 
@@ -73,3 +79,5 @@ As pastas `dados/raw/`, `dados/silver/` e `dados/gold/` estão no `.gitignore`. 
 - **CNO usa encoding latin-1**: o CSV do governo vem em latin-1, não UTF-8.
 - **Performance usa formato wide**: o `.xls` do IABr tem anos e meses em linhas separadas com forward-fill. O parser localiza essas linhas dinamicamente pelo conteúdo.
 - **Tabela mestre usa left join**: o merge em `etl/tabela_mestre.py` é left (ancorado no alvo), com `ffill`/`bfill` aplicado às colunas numéricas para preencher lacunas onde uma feature começa depois do alvo. Valores ausentes do SIDRA (`-`, `...`) viram `NaN` em `ajustar_valores`, não `0.0`.
+- **SARIMA supera XGBoost no teste**: com os dados atuais (~149 obs), o SARIMA(1,1,2)×(0,1,1,12) tem MAPE~5.4% e R²~0.52 no teste, enquanto o XGBoost fica em MAPE~5.8% e R²~0.20. As features externas não generalizam para o período de teste — não é problema de hiperparâmetros. O SARIMAX com muitos regressores piora ainda mais (R² negativo). Adicionar mais histórico ou features com lead time comprovado é o próximo passo natural.
+- **Permutation importance em val pequeno é ruído**: com val de 12 obs a seleção de features por permutation importance é estatisticamente não-confiável (std ≈ mean). Usar val de pelo menos 24-36 obs ou walk-forward CV para seleção.
