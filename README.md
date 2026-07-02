@@ -11,6 +11,7 @@ steel-demand-forecast/
 ├── config.py              # Carregador do config.yaml
 ├── config.yaml            # Configuração centralizada (paths, filtros, parâmetros de API)
 ├── run_etl.py             # Orquestrador — ponto de entrada do pipeline
+├── app.py                 # Interface Streamlit (ingestão, treino, resultados, inferência)
 │
 ├── etl/                   # Pipelines de extração e transformação
 │   ├── anfavea.py         # Produção de veículos (ANFAVEA)
@@ -18,6 +19,16 @@ steel-demand-forecast/
 │   ├── macroeconomia.py   # IPEA, BCB/SGS e SIDRA/IBGE
 │   ├── performance.py     # Performance mensal do setor siderúrgico (IABr)
 │   └── tabela_mestre.py   # Consolida silver → tabela mestre (gold)
+│
+├── ml/                    # Pipeline de ML modularizado (a partir do pipeline_ml.ipynb)
+│   ├── parametros.py      # Dataclass ParametrosML (defaults do notebook)
+│   ├── features.py        # Feature engineering e seleção de features
+│   ├── treino.py          # Splits, Optuna, walk-forward CV e métricas
+│   ├── forecast.py        # Previsão recursiva multi-step
+│   ├── persistencia.py    # Salvar/recarregar sessões em secoes/
+│   └── plots.py           # Gráficos Plotly
+│
+├── ui/                    # Componentes Streamlit — um módulo por aba
 │
 ├── utils/
 │   ├── transforms.py      # Funções de limpeza e transformação de dados
@@ -103,6 +114,23 @@ python run_etl.py tabela_mestre            # gera o input do modelo
 ### 3. Output
 
 A tabela mestre é salva em `dados/gold/tabela_mestre.xlsx` com ~143 observações mensais e 32 colunas (1 variável alvo + 31 features).
+
+---
+
+## Interface Streamlit
+
+```bash
+uv run streamlit run app.py
+```
+
+A interface tem quatro abas:
+
+1. **📥 Ingestão de dados** — upload dos arquivos manuais (ANFAVEA, CNO, IABr) direto para `dados/raw/`, execução dos pipelines ETL com logs ao vivo e prévia da tabela mestre.
+2. **⚙️ Parâmetros e treino** — expõe os parâmetros globais do notebook (datas de split, lags, thresholds de seleção, trials do Optuna etc.) e treina o XGBoost com barra de progresso.
+3. **📊 Resultados do treino** — métricas por conjunto, real vs previsto (treino/val/teste), importância de variáveis e análise de resíduos.
+4. **🔮 Inferência** — previsão recursiva com horizonte configurável (1–36 meses) e faixa de incerteza ±MAE×√h.
+
+Cada treino gera uma sessão em `secoes/resultados_{timestamp}/` (modelo XGBoost em formato nativo, parâmetros, métricas, dados e previsão), que pode ser recarregada nas abas de resultados e inferência mesmo após reiniciar o app. A lógica de modelagem vive no pacote `ml/` — o notebook `pipeline_ml.ipynb` continua sendo a referência exploratória (SARIMA/SARIMAX inclusos).
 
 ---
 

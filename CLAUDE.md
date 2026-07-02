@@ -12,6 +12,7 @@ python run_etl.py                          # todos os pipelines
 python run_etl.py anfavea cno performance  # só os que dependem de arquivos manuais
 python run_etl.py macro                    # só as APIs (demora ~10 min pelo SIDRA)
 python run_etl.py tabela_mestre            # consolida silver → gold
+uv run streamlit run app.py                # interface Streamlit (ingestão, treino, resultados, inferência)
 ```
 
 ## Estrutura de código
@@ -20,8 +21,10 @@ python run_etl.py tabela_mestre            # consolida silver → gold
 - **`config.yaml`** — fonte única de verdade para paths, datas, códigos de API e filtros
 - **`config.py`** — carrega o YAML e expõe `CFG`; não editar diretamente
 - **`etl/`** — um arquivo por fonte de dados; cada pipeline recebe `cfg: dict` como único argumento
+- **`ml/`** — pipeline de ML modularizado a partir do `pipeline_ml.ipynb` (só XGBoost+Optuna; SARIMA/SARIMAX ficam no notebook). Lógica pura, sem imports de Streamlit: `parametros.py` (dataclass `ParametrosML` com os defaults do notebook), `features.py`, `treino.py` (fachada `PipelineML`), `forecast.py` (previsão recursiva), `persistencia.py` (sessões em `secoes/resultados_{ts}/` com modelo XGBoost em JSON nativo, não pickle) e `plots.py` (gráficos Plotly)
+- **`app.py` + `ui/`** — interface Streamlit com 4 abas (um módulo por aba em `ui/tab_*.py`); estado entre abas via `st.session_state` (chaves em `ui/estado.py`); logs do ETL/treino capturados por `ui/log_streamlit.py`
 - **`utils/transforms.py`** — funções compartilhadas de limpeza/transformação (SIDRA, datas, Excel)
-- **`utils/viz.py`** — helpers de formatação para gráficos
+- **`utils/viz.py`** — helpers de formatação para gráficos matplotlib do ETL (os plots Plotly do ML ficam em `ml/plots.py`)
 - **`notebooks/pipeline_ml.ipynb`** — pipeline completo de modelagem: feature engineering, seleção de variáveis, SARIMA, SARIMAX e XGBoost com Optuna; inclui previsão recursiva para horizonte futuro
 - **`notebooks/tabela_mestre.ipynb`** — replica o pipeline gold de forma interativa
 - **`notebooks/`** — demais notebooks de exploração por fonte de dados

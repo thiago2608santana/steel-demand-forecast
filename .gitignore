@@ -38,6 +38,9 @@ dados/gold/
 notebooks/secoes/
 notebooks/Modelos/
 
+# Sessões de treino geradas pela interface Streamlit
+secoes/
+
 # Credenciais e configuração local
 .env
 .envrc
