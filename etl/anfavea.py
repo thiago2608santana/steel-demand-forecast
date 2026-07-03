@@ -6,7 +6,8 @@ import logging
 
 import pandas as pd
 
-from utils.transforms import filter_by_date, salvar_excel, validar_output
+from utils.databricks_io import salvar_tabela
+from utils.transforms import filter_by_date, validar_output
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +15,10 @@ logger = logging.getLogger(__name__)
 def processar_anfavea(cfg: dict) -> pd.DataFrame:
     """Extrai, transforma e salva os dados de produção de veículos da ANFAVEA.
 
-    Lê o arquivo Excel da ANFAVEA, renomeia as colunas usando o esquema de
-    categorias x variáveis, filtra pelo intervalo de datas configurado,
-    calcula a produção total e persiste o resultado em dados/silver.
+    Lê o arquivo Excel da ANFAVEA, salva a cópia crua na camada bronze,
+    renomeia as colunas usando o esquema de categorias x variáveis, filtra
+    pelo intervalo de datas configurado, calcula a produção total e persiste
+    o resultado na camada silver do Databricks.
 
     Args:
         cfg: Dicionário de configuração.
@@ -25,7 +27,6 @@ def processar_anfavea(cfg: dict) -> pd.DataFrame:
         DataFrame processado com colunas de produção por categoria e total.
     """
     path_input = cfg["paths"]["anfavea_input"]
-    path_output = cfg["paths"]["anfavea_output"]
     skiprows = cfg["anfavea"]["skiprows"]
     categorias = cfg["anfavea"]["categorias"]
     variaveis = cfg["anfavea"]["variaveis"]
@@ -34,13 +35,14 @@ def processar_anfavea(cfg: dict) -> pd.DataFrame:
 
     logger.info("Carregando ANFAVEA: %s", path_input)
     df = pd.read_excel(path_input, skiprows=skiprows, engine="openpyxl")
+    salvar_tabela(df, "bronze", "anfavea_autoveiculos")
 
     df = _renomear_colunas(df, categorias, variaveis)
     df = filter_by_date(df, "Date", date_start, date_end)
     df = _extrair_producao(df)
 
     validar_output(df, "anfavea", min_linhas=24, colunas_obrigatorias=["Date", "producao_total"])
-    salvar_excel(df, path_output)
+    salvar_tabela(df, "silver", "anfavea_producao_veiculos")
     logger.info("ANFAVEA concluído.")
     return df
 
@@ -87,5 +89,9 @@ def _extrair_producao(df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("Nenhuma coluna de produção encontrada após renomeação.")
 
     df = df[["Date"] + colunas_producao].copy()
+    # O Excel chega com dtype object (resíduo do cabeçalho mesclado); tipar
+    # explicitamente garante colunas DATE/DOUBLE na tabela Delta.
+    df["Date"] = pd.to_datetime(df["Date"])
+    df[colunas_producao] = df[colunas_producao].apply(pd.to_numeric, errors="coerce")
     df["producao_total"] = df[colunas_producao].sum(axis=1)
     return df

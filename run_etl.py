@@ -11,7 +11,7 @@ Pipelines disponíveis: anfavea, cno, macro, performance, tabela_mestre
 Ordem recomendada de execução completa:
     1. anfavea, cno, performance  (requerem arquivos manuais em dados/raw/)
     2. macro                      (consome APIs públicas)
-    3. tabela_mestre              (consolida dados/silver/ → dados/gold/)
+    3. tabela_mestre              (consolida steeldemand.silver.* → steeldemand.gold.tabela_mestre)
 """
 import logging
 import sys

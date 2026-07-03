@@ -219,7 +219,7 @@ class PipelineML:
     def preparar_dados(self) -> tuple[pd.DataFrame, dict]:
         """Carrega a tabela mestre e aplica feature engineering + filtros estatísticos."""
         p = self.params
-        df = ml_features.carregar_tabela_mestre(p.path_tabela_mestre)
+        df = ml_features.carregar_tabela_mestre(p.fonte_tabela_mestre)
         df, removidas_multi = ml_features.remover_multicolinearidade(
             df, p.target_col, p.threshold_multicolinearidade
         )

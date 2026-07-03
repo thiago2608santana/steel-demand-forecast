@@ -5,8 +5,8 @@
 O projeto consolida dados de múltiplas fontes públicas para modelagem de demanda de aço no Brasil. O fluxo segue a arquitetura medallion:
 
 ```
-dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados/gold/
-  (input)                    (por fonte)                           (input do modelo)
+dados/raw/ + APIs   →   ETL   →   steeldemand.bronze.*   →   steeldemand.silver.*   →   steeldemand.gold.tabela_mestre
+   (staging local)                      (dados crus)              (por fonte)                  (input do modelo)
 ```
 
 ---
@@ -21,7 +21,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | **URL** | https://anfavea.com.br/site/edicoes-em-excel/ |
 | **Tipo de ingestão** | Arquivo manual (`.xlsx`) |
 | **Input** | `dados/raw/anfavea_autoveiculos.xlsx` |
-| **Output silver** | `dados/silver/anfavea_producao_veiculos.xlsx` |
+| **Output bronze** | `steeldemand.bronze.anfavea_autoveiculos` |
+| **Output silver** | `steeldemand.silver.anfavea_producao_veiculos` |
 | **Granularidade** | Mensal |
 | **Cobertura** | 2013-01 até presente |
 
@@ -47,7 +48,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | **URL** | https://dados.gov.br/dados/conjuntos-dados/cadastro-nacional-de-obras-cno |
 | **Tipo de ingestão** | Arquivo manual (`.csv`) |
 | **Input** | `dados/raw/cno.csv` |
-| **Output silver** | `dados/silver/gov_br_cno.xlsx` |
+| **Output bronze** | `steeldemand.bronze.cno` |
+| **Output silver** | `steeldemand.silver.gov_br_cno` |
 | **Granularidade** | Mensal (agregado da data de início da obra) |
 | **Cobertura** | 2013-01 até presente |
 | **Filtros aplicados** | Somente obras no Brasil (`Nome do pais = BRASIL`), excluindo exterior (`Estado ≠ EX`) |
@@ -74,7 +76,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | **URL** | https://acobrasil.org.br/site/estatisticas/ |
 | **Tipo de ingestão** | Arquivo manual (`.xls`) |
 | **Input** | `dados/raw/Performance-Mensal_<ano.mes>.xls` |
-| **Output silver** | `dados/silver/performance.xlsx` |
+| **Output bronze** | `steeldemand.bronze.performance_mensal` |
+| **Output silver** | `steeldemand.silver.performance` |
 | **Granularidade** | Mensal |
 | **Cobertura** | 2013-01 até presente |
 
@@ -109,7 +112,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | Atributo | Detalhe |
 |---|---|
 | **Código IPEA** | `PAN12_TJOVER12` |
-| **Output silver** | `dados/silver/ipea_selic.xlsx` |
+| **Output bronze** | `steeldemand.bronze.ipea_selic` |
+| **Output silver** | `steeldemand.silver.ipea_selic` |
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -121,7 +125,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | Atributo | Detalhe |
 |---|---|
 | **Código IPEA** | `GAC12_INDFBCFDESSAZ12` |
-| **Output silver** | `dados/silver/ipea_fbc.xlsx` |
+| **Output bronze** | `steeldemand.bronze.ipea_fbc` |
+| **Output silver** | `steeldemand.silver.ipea_fbc` |
 | **Observação** | Excluído da tabela mestre (série descontinuada) |
 
 | Coluna | Tipo | Descrição |
@@ -134,7 +139,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | Atributo | Detalhe |
 |---|---|
 | **Código IPEA** | `GM366_ERC366` |
-| **Output silver** | `dados/silver/ipea_cambio.xlsx` |
+| **Output bronze** | `steeldemand.bronze.ipea_cambio` |
+| **Output silver** | `steeldemand.silver.ipea_cambio` |
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -157,7 +163,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | Atributo | Detalhe |
 |---|---|
 | **Código SGS** | `432` |
-| **Output silver** | `dados/silver/bc_sgs_projecao_selic.xlsx` |
+| **Output bronze** | `steeldemand.bronze.bcb_selic` |
+| **Output silver** | `steeldemand.silver.bc_sgs_projecao_selic` |
 | **Observação** | Excluído da tabela mestre |
 
 | Coluna | Tipo | Descrição |
@@ -170,7 +177,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | Atributo | Detalhe |
 |---|---|
 | **Códigos SGS** | IPCA: `433` / PIB mensal: `4380` |
-| **Output silver** | `dados/silver/bc_sgs_ipca_pib.xlsx` |
+| **Output bronze** | `steeldemand.bronze.bcb_ipca_pib` |
+| **Output silver** | `steeldemand.silver.bc_sgs_ipca_pib` |
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -183,7 +191,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | Atributo | Detalhe |
 |---|---|
 | **Códigos SGS** | Construção: `22030` / Infraestrutura: `27725` / Metalurgia e siderurgia: `27748` |
-| **Output silver** | `dados/silver/bc_sgs_operacoes_credito_industria.xlsx` |
+| **Output bronze** | `steeldemand.bronze.bcb_credito_industria` |
+| **Output silver** | `steeldemand.silver.bc_sgs_operacoes_credito_industria` |
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -209,7 +218,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 | Atributo | Detalhe |
 |---|---|
 | **Tabela SIDRA** | `647` |
-| **Output silver** | `dados/silver/sidra_sinapi_m2.xlsx` |
+| **Output bronze** | `steeldemand.bronze.sidra_sinapi_m2` |
+| **Output silver** | `steeldemand.silver.sidra_sinapi_m2` |
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -222,7 +232,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 |---|---|
 | **Tabela SIDRA** | `8888` |
 | **Variável** | `PIMPF - Número-índice (2022=100)` |
-| **Output silver** | `dados/silver/sidra_pim_pf.xlsx` |
+| **Output bronze** | `steeldemand.bronze.sidra_pim_pf` |
+| **Output silver** | `steeldemand.silver.sidra_pim_pf` |
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -238,7 +249,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 |---|---|
 | **Tabela SIDRA** | `6903` |
 | **Variável** | `IPP - Número-índice (dezembro de 2018 = 100)` |
-| **Output silver** | `dados/silver/sidra_ipp.xlsx` |
+| **Output bronze** | `steeldemand.bronze.sidra_ipp` |
+| **Output silver** | `steeldemand.silver.sidra_ipp` |
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -256,7 +268,8 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 |---|---|
 | **Tabela SIDRA** | `6379` |
 | **Cobertura** | Brasil (nível nacional) |
-| **Output silver** | `dados/silver/sidra_pnad_ocupacao.xlsx` |
+| **Output bronze** | `steeldemand.bronze.sidra_pnad` |
+| **Output silver** | `steeldemand.silver.sidra_pnad_ocupacao` |
 
 | Coluna | Tipo | Descrição |
 |---|---|---|
@@ -265,13 +278,13 @@ dados/raw/   →   ETL   →   dados/silver/   →   tabela_mestre   →   dados
 
 ---
 
-## Tabela Mestre — dados/gold/tabela_mestre.xlsx
+## Tabela Mestre — steeldemand.gold.tabela_mestre
 
 A tabela mestre é o artefato final do pipeline ETL, gerada por `etl/tabela_mestre.py` consolidando todas as fontes silver. É o input direto do modelo de machine learning.
 
 | Atributo | Detalhe |
 |---|---|
-| **Output gold** | `dados/gold/tabela_mestre.xlsx` |
+| **Output gold** | `steeldemand.gold.tabela_mestre` |
 | **Granularidade** | Mensal |
 | **Cobertura efetiva** | 2014-03 até presente (limitada pelo menor período comum entre as fontes) |
 | **Dimensões** | ~143 observações × 32 colunas |

@@ -9,7 +9,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from utils.transforms import salvar_excel, validar_output
+from utils.databricks_io import salvar_tabela
+from utils.transforms import validar_output
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,8 @@ def processar_performance(cfg: dict) -> pd.DataFrame:
     """Extrai, transforma e salva os dados de Performance Mensal.
 
     Seleciona automaticamente o arquivo Performance-Mensal mais recente em
-    dados/raw/ via glob. Se `performance_input` estiver definido no config,
-    usa esse caminho como fallback explícito.
+    dados/raw/ via glob. O grid cru do Excel é salvo na camada bronze e o
+    resultado transformado na camada silver do Databricks.
 
     Args:
         cfg: Dicionário de configuração com paths.
@@ -38,12 +39,14 @@ def processar_performance(cfg: dict) -> pd.DataFrame:
         DataFrame no formato long com colunas Categoria, Especificação, Data, Valor.
     """
     path_input = _resolver_arquivo_performance(cfg)
-    path_output = cfg["paths"]["performance_output"]
 
     logger.info("Carregando Performance: %s", path_input)
-    df = _extrair_performance(path_input)
+    df_raw = pd.read_excel(path_input, header=None)
+    salvar_tabela(df_raw.rename(columns=lambda c: f"col_{c}"), "bronze", "performance_mensal")
+
+    df = _extrair_performance(df_raw)
     validar_output(df, "performance", min_linhas=24, colunas_obrigatorias=["Data", "Valor", "Categoria"], date_col="Data")
-    salvar_excel(df, path_output)
+    salvar_tabela(df, "silver", "performance")
     logger.info("Performance concluído.")
     return df
 
@@ -64,9 +67,7 @@ def _resolver_arquivo_performance(cfg: dict) -> str:
     return str(arquivo)
 
 
-def _extrair_performance(file_path: str) -> pd.DataFrame:
-    df_raw = pd.read_excel(file_path, header=None)
-
+def _extrair_performance(df_raw: pd.DataFrame) -> pd.DataFrame:
     espec_row_idx = None
     month_row_idx = None
 
@@ -123,6 +124,8 @@ def _extrair_performance(file_path: str) -> pd.DataFrame:
         value_name="Valor",
     )
     df_melted["Data"] = pd.to_datetime(df_melted["Data"])
+    # Valores vêm do grid como object; tipar garante coluna DOUBLE na tabela Delta.
+    df_melted["Valor"] = pd.to_numeric(df_melted["Valor"], errors="coerce")
     df_melted["Especificação"] = df_melted["Especificação"].astype(str).str.strip()
     df_melted = df_melted.sort_values(by=["Categoria", "Especificação", "Data"]).reset_index(drop=True)
 

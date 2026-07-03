@@ -1,4 +1,12 @@
 """Utilitários compartilhados entre os pipelines ETL."""
+from utils.databricks_io import (
+    get_spark,
+    ler_tabela,
+    nome_completo,
+    salvar_tabela,
+    tabela_existe,
+    ultima_modificacao,
+)
 from utils.transforms import (
     ajustar_valores,
     clean_sidra_response,
@@ -20,7 +28,13 @@ __all__ = [
     "fill_missing",
     "filter_by_date",
     "formatar_escala",
+    "get_spark",
+    "ler_tabela",
+    "nome_completo",
     "pivot_mensal",
     "salvar_excel",
+    "salvar_tabela",
+    "tabela_existe",
+    "ultima_modificacao",
     "validar_output",
 ]

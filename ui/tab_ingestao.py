@@ -10,6 +10,7 @@ from ml import plots
 from run_etl import PIPELINES  # o import também configura o logging INFO do ETL
 from ui.dados import tabela_mestre_cached
 from ui.log_streamlit import capturar_logs
+from utils.databricks_io import nome_completo, tabela_existe, ultima_modificacao
 
 ORDEM_RECOMENDADA = ["anfavea", "cno", "performance", "macro", "tabela_mestre"]
 
@@ -108,17 +109,21 @@ def _secao_pipelines() -> None:
 
 
 def _secao_tabela_mestre() -> None:
-    path_gold = CFG["paths"]["tabela_mestre_output"]
+    tabela_gold = nome_completo("gold", "tabela_mestre")
     st.subheader("Tabela mestre (gold)")
-    if not os.path.exists(path_gold):
+    if not tabela_existe("gold", "tabela_mestre"):
         st.info("Tabela mestre ainda não gerada — execute o pipeline `tabela_mestre`.")
         return
 
-    df = tabela_mestre_cached(path_gold)
+    df = tabela_mestre_cached()
+    atualizada = ultima_modificacao("gold", "tabela_mestre")
+    atualizada_str = (
+        atualizada.astimezone().strftime("%d/%m/%Y %H:%M") if atualizada else "—"
+    )
     st.caption(
-        f"`{path_gold}` — {df.shape[0]} linhas × {df.shape[1]} colunas | "
+        f"`{tabela_gold}` — {df.shape[0]} linhas × {df.shape[1]} colunas | "
         f"{df['data'].min().date()} → {df['data'].max().date()} | "
-        f"atualizada em {_mtime_legivel(path_gold)}"
+        f"atualizada em {atualizada_str}"
     )
     with st.expander("Prévia dos dados"):
         st.dataframe(df.tail(12), use_container_width=True)

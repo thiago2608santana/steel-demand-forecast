@@ -11,6 +11,7 @@ import time
 
 import pandas as pd
 
+from utils.databricks_io import salvar_tabela
 from utils.transforms import (
     ajustar_valores,
     clean_sidra_response,
@@ -18,7 +19,6 @@ from utils.transforms import (
     drop_sidra_cols,
     filter_by_date,
     pivot_mensal,
-    salvar_excel,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,8 @@ def processar_macroeconomia(cfg: dict) -> None:
     """Executa todos os pipelines de indicadores macroeconômicos em sequência.
 
     Chama cada extrator individualmente, registrando falhas sem interromper
-    os demais. Ao final, todos os arquivos Excel estão salvos em dados/silver.
+    os demais. Cada extrator salva a resposta crua da API na camada bronze e
+    o resultado transformado na camada silver do Databricks.
 
     Args:
         cfg: Dicionário de configuração.
@@ -72,13 +73,15 @@ def extrair_selic_ipea(cfg: dict) -> pd.DataFrame:
 
     df = ip.timeseries(codigo)
     df.reset_index(inplace=True)
+    salvar_tabela(df, "bronze", "ipea_selic")
+
     df.rename(columns={"DATE": "Date"}, inplace=True)
     df = filter_by_date(df, "Date", date_start)
     df.drop(["CODE", "RAW DATE", "DAY", "MONTH", "YEAR"], axis=1, inplace=True)
     df.fillna(0, inplace=True)
     df.rename(columns={"VALUE ((% a.a.))": "taxa_selic_aa"}, inplace=True)
 
-    salvar_excel(df, cfg["paths"]["ipea_selic_output"])
+    salvar_tabela(df, "silver", "ipea_selic")
     return df
 
 
@@ -91,13 +94,15 @@ def extrair_fbc_ipea(cfg: dict) -> pd.DataFrame:
 
     df = ip.timeseries(codigo)
     df.reset_index(inplace=True)
+    salvar_tabela(df, "bronze", "ipea_fbc")
+
     df.rename(columns={"DATE": "Date"}, inplace=True)
     df = filter_by_date(df, "Date", date_start)
     df.drop(["CODE", "RAW DATE", "DAY", "MONTH", "YEAR"], axis=1, inplace=True)
     df.fillna(0, inplace=True)
     df.rename(columns={"VALUE (-)": "formacao_bruta_capital"}, inplace=True)
 
-    salvar_excel(df, cfg["paths"]["ipea_fbc_output"])
+    salvar_tabela(df, "silver", "ipea_fbc")
     return df
 
 
@@ -110,6 +115,8 @@ def extrair_cambio_ipea(cfg: dict) -> pd.DataFrame:
 
     df = ip.timeseries(codigo)
     df.reset_index(inplace=True)
+    salvar_tabela(df, "bronze", "ipea_cambio")
+
     df.rename(columns={"DATE": "Date"}, inplace=True)
     df = filter_by_date(df, "Date", date_start)
     df.drop(["CODE", "RAW DATE", "DAY", "MONTH", "YEAR"], axis=1, inplace=True)
@@ -117,7 +124,7 @@ def extrair_cambio_ipea(cfg: dict) -> pd.DataFrame:
     df = df.groupby(pd.Grouper(key="Date", freq="MS")).mean().reset_index()
     df.rename(columns={"VALUE (R$)": "valor_cambio_reais"}, inplace=True)
 
-    salvar_excel(df, cfg["paths"]["ipea_cambio_output"])
+    salvar_tabela(df, "silver", "ipea_cambio")
     return df
 
 
@@ -138,12 +145,13 @@ def extrair_selic_bcb(cfg: dict) -> pd.DataFrame:
     df1.reset_index(inplace=True)
     df2 = sgs.get(codes=("SELIC", 432), start=ini_2)
     df2.reset_index(inplace=True)
+    salvar_tabela(pd.concat([df1, df2], ignore_index=True), "bronze", "bcb_selic")
 
     df1_m = df1.groupby(pd.Grouper(key="Date", freq="MS")).mean().reset_index()
     df2_m = df2.groupby(pd.Grouper(key="Date", freq="MS")).mean().reset_index()
     df = pd.concat([df1_m, df2_m], ignore_index=True)
 
-    salvar_excel(df, cfg["paths"]["bcb_selic_output"])
+    salvar_tabela(df, "silver", "bc_sgs_projecao_selic")
     return df
 
 
@@ -156,9 +164,11 @@ def extrair_ipca_pib_bcb(cfg: dict) -> pd.DataFrame:
 
     df = sgs.get(codes=[("IPCA", codigos["ipca"]), ("PIB_mensal", codigos["pib_mensal"])])
     df.reset_index(inplace=True)
+    salvar_tabela(df, "bronze", "bcb_ipca_pib")
+
     df = filter_by_date(df, "Date", date_start)
 
-    salvar_excel(df, cfg["paths"]["bcb_ipca_pib_output"])
+    salvar_tabela(df, "silver", "bc_sgs_ipca_pib")
     return df
 
 
@@ -174,8 +184,9 @@ def extrair_credito_industria_bcb(cfg: dict) -> pd.DataFrame:
         ("operacoes_credito_industria_metalurgia_siderurgia", codigos["credito_metalurgia"]),
     ])
     df.reset_index(inplace=True)
+    salvar_tabela(df, "bronze", "bcb_credito_industria")
 
-    salvar_excel(df, cfg["paths"]["bcb_credito_output"])
+    salvar_tabela(df, "silver", "bc_sgs_operacoes_credito_industria")
     return df
 
 
@@ -232,7 +243,7 @@ def extrair_sinapi_sidra(cfg: dict) -> pd.DataFrame:
         classifications={str(k): v for k, v in sidra_cfg["classifications"].items()},
     )
 
-    salvar_excel(df, cfg["paths"]["sidra_sinapi_raw"])
+    salvar_tabela(df, "bronze", "sidra_sinapi_m2")
 
     df = df[df["Mês (Código)"] != "Mês (Código)"].copy().reset_index(drop=True)
     df["Date"] = converter_data_sidra(df["Mês (Código)"])
@@ -246,7 +257,7 @@ def extrair_sinapi_sidra(cfg: dict) -> pd.DataFrame:
         .rename(columns={"Valor": "custo_projeto_m2"})
     )
 
-    salvar_excel(df_resultado, cfg["paths"]["sidra_sinapi_output"])
+    salvar_tabela(df_resultado, "silver", "sidra_sinapi_m2")
     return df_resultado
 
 
@@ -266,7 +277,7 @@ def extrair_pim_pf_sidra(cfg: dict) -> pd.DataFrame:
     )
 
     logger.info("PIM-PF extraído: %s", df.shape)
-    salvar_excel(df, cfg["paths"]["sidra_pim_pf_raw"])
+    salvar_tabela(df, "bronze", "sidra_pim_pf")
 
     df = df[df["Mês (Código)"] != "Mês (Código)"].copy().reset_index(drop=True)
     df["Date"] = converter_data_sidra(df["Mês (Código)"])
@@ -280,7 +291,7 @@ def extrair_pim_pf_sidra(cfg: dict) -> pd.DataFrame:
 
     df_pivot = pivot_mensal(df_filtrado, "Date", col_secao, "Valor")
 
-    salvar_excel(df_pivot, cfg["paths"]["sidra_pim_pf_output"])
+    salvar_tabela(df_pivot, "silver", "sidra_pim_pf")
     return df_pivot
 
 
@@ -302,6 +313,7 @@ def extrair_ipp_sidra(cfg: dict) -> pd.DataFrame:
         classifications={str(k): v for k, v in sidra_cfg["classifications"].items()},
     )
     df = clean_sidra_response(df_raw)
+    salvar_tabela(df, "bronze", "sidra_ipp")
 
     col_secao = "Indústria geral, indústrias extrativas e indústrias de transformação e atividades (CNAE 2.0)"
     df_filtrado = df[
@@ -317,7 +329,7 @@ def extrair_ipp_sidra(cfg: dict) -> pd.DataFrame:
 
     df_pivot = pivot_mensal(df_filtrado, "Date", col_secao, "Valor")
 
-    salvar_excel(df_pivot, cfg["paths"]["sidra_ipp_output"])
+    salvar_tabela(df_pivot, "silver", "sidra_ipp")
     return df_pivot
 
 
@@ -337,6 +349,7 @@ def extrair_pnad_sidra(cfg: dict) -> pd.DataFrame:
         variables="all",
     )
     df = clean_sidra_response(df_raw)
+    salvar_tabela(df, "bronze", "sidra_pnad")
 
     df_filtrado = df[df["Variável"] == filtrar_variavel].copy().reset_index(drop=True)
 
@@ -356,5 +369,5 @@ def extrair_pnad_sidra(cfg: dict) -> pd.DataFrame:
     df_filtrado.rename(columns={"Valor": filtrar_variavel}, inplace=True)
     df_filtrado.drop("Variável", axis=1, inplace=True)
 
-    salvar_excel(df_filtrado, cfg["paths"]["sidra_pnad_output"])
+    salvar_tabela(df_filtrado, "silver", "sidra_pnad_ocupacao")
     return df_filtrado

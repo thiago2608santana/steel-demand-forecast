@@ -1,52 +1,48 @@
 """Pipeline ETL para construção da tabela mestre — input do modelo de ML.
 
-Lê todos os arquivos silver, faz merge em `Date` usando a variável alvo
-(Consumo Aparente de Longos) como âncora, e persiste o resultado em dados/gold.
+Lê todas as tabelas silver do Databricks, faz merge em `Date` usando a
+variável alvo (Consumo Aparente de Longos) como âncora, e persiste o
+resultado em `steeldemand.gold.tabela_mestre`.
 """
 import logging
-import os
 
 import pandas as pd
 
-from utils.transforms import padronizar_colunas_mestre, salvar_excel, validar_output
+from utils.databricks_io import ler_tabela, salvar_tabela, tabela_existe
+from utils.transforms import padronizar_colunas_mestre, validar_output
 
 logger = logging.getLogger(__name__)
 
 _CATEGORIA_ALVO = "Consumo Aparente / Apparent Consumption (***)"
 _ESPECIFICACAO_ALVO = "Longos / Long Products\n(Inclui Blocos e Tarugos / Included Ingots, Blooms and Billets)"
 
-# Arquivos silver excluídos do merge de features (descartados na análise)
-_ARQUIVOS_EXCLUIR = {"performance.xlsx", "ipea_fbc.xlsx", "bc_sgs_projecao_selic.xlsx"}
-
 
 def processar_tabela_mestre(cfg: dict) -> pd.DataFrame:
     """Constrói a tabela mestre unindo variável alvo e features silver.
 
     Args:
-        cfg: Dicionário de configuração com paths.
+        cfg: Dicionário de configuração (assinatura padrão dos pipelines).
 
     Returns:
-        DataFrame com variável alvo + todas as features, salvo em dados/gold.
+        DataFrame com variável alvo + todas as features, salvo em
+        steeldemand.gold.tabela_mestre.
     """
-    silver_dir = cfg["paths"]["silver_dir"]
-    output_path = cfg["paths"]["tabela_mestre_output"]
-
-    df_alvo = _extrair_variavel_alvo(cfg["paths"]["performance_output"])
-    df_final = _merge_features(df_alvo, silver_dir)
+    df_alvo = _extrair_variavel_alvo()
+    df_final = _merge_features(df_alvo)
     df_final = padronizar_colunas_mestre(df_final)
 
     validar_output(
         df_final, "tabela_mestre", min_linhas=60,
         colunas_obrigatorias=["data", "consumo_aparente"], date_col="data",
     )
-    salvar_excel(df_final, output_path)
+    salvar_tabela(df_final, "gold", "tabela_mestre")
     logger.info("Tabela mestre concluída: %s features, %s observações.", df_final.shape[1] - 1, df_final.shape[0])
     return df_final
 
 
-def _extrair_variavel_alvo(performance_path: str) -> pd.DataFrame:
-    """Lê o arquivo de performance e extrai o Consumo Aparente de Longos."""
-    df = pd.read_excel(performance_path, engine="openpyxl")
+def _extrair_variavel_alvo() -> pd.DataFrame:
+    """Lê a tabela silver de performance e extrai o Consumo Aparente de Longos."""
+    df = ler_tabela("silver", "performance", ordenar_por="Data")
     df_alvo = df[
         (df["Categoria"] == _CATEGORIA_ALVO) &
         (df["Especificação"] == _ESPECIFICACAO_ALVO)
@@ -58,38 +54,38 @@ def _extrair_variavel_alvo(performance_path: str) -> pd.DataFrame:
     return df_alvo
 
 
-def _merge_features(df_alvo: pd.DataFrame, silver_dir: str) -> pd.DataFrame:
-    """Faz merge dos arquivos silver elegíveis sobre a variável alvo.
+def _merge_features(df_alvo: pd.DataFrame) -> pd.DataFrame:
+    """Faz merge das tabelas silver elegíveis sobre a variável alvo.
 
     A ordem é determinística e explícita para garantir reprodutibilidade.
-    Arquivos presentes em silver_dir mas ausentes desta lista são ignorados,
-    evitando inclusão acidental de arquivos temporários ou experimentais.
+    Tabelas existentes no schema silver mas ausentes desta lista são ignoradas
+    (ex.: performance, ipea_fbc e bc_sgs_projecao_selic, descartadas na análise),
+    evitando inclusão acidental de tabelas temporárias ou experimentais.
     """
     _ORDEM_MERGE = [
-        "anfavea_producao_veiculos.xlsx",
-        "bc_sgs_ipca_pib.xlsx",
-        "bc_sgs_operacoes_credito_industria.xlsx",
-        "gov_br_cno.xlsx",
-        "ipea_cambio.xlsx",
-        "ipea_selic.xlsx",
-        "sidra_ipp.xlsx",
-        "sidra_pim_pf.xlsx",
-        "sidra_pnad_ocupacao.xlsx",
-        "sidra_sinapi_m2.xlsx",
+        "anfavea_producao_veiculos",
+        "bc_sgs_ipca_pib",
+        "bc_sgs_operacoes_credito_industria",
+        "gov_br_cno",
+        "ipea_cambio",
+        "ipea_selic",
+        "sidra_ipp",
+        "sidra_pim_pf",
+        "sidra_pnad_ocupacao",
+        "sidra_sinapi_m2",
     ]
 
-    ausentes = [f for f in _ORDEM_MERGE if not os.path.exists(os.path.join(silver_dir, f))]
+    ausentes = [t for t in _ORDEM_MERGE if not tabela_existe("silver", t)]
     if ausentes:
         raise FileNotFoundError(
-            f"Arquivos silver ausentes — rode os pipelines correspondentes antes de tabela_mestre: {ausentes}"
+            f"Tabelas silver ausentes — rode os pipelines correspondentes antes de tabela_mestre: {ausentes}"
         )
 
     df = df_alvo.copy()
-    for arquivo in _ORDEM_MERGE:
-        path = os.path.join(silver_dir, arquivo)
-        df_temp = pd.read_excel(path, engine="openpyxl")
+    for tabela in _ORDEM_MERGE:
+        df_temp = ler_tabela("silver", tabela)
         df = df.merge(df_temp, on="Date", how="left")
-        logger.info("Merged: %s  → shape %s", arquivo, df.shape)
+        logger.info("Merged: %s  → shape %s", tabela, df.shape)
 
     # Preencher NaN gerados pelo left join: forward-fill e depois backward-fill
     # para as primeiras linhas onde alguma feature começa depois do target.

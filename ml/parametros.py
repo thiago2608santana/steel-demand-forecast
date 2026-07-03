@@ -1,15 +1,13 @@
 """Parâmetros globais do pipeline de ML — espelham a célula de parâmetros do notebook."""
 from dataclasses import asdict, dataclass, field, fields
 
-from config import CFG
-
 
 @dataclass
 class ParametrosML:
     """Parâmetros configuráveis do pipeline (defaults idênticos ao notebook)."""
 
-    # --- Dados de entrada ---
-    path_tabela_mestre: str = CFG["paths"]["tabela_mestre_output"]
+    # --- Dados de entrada (schema.tabela no catálogo Databricks do projeto) ---
+    fonte_tabela_mestre: str = "gold.tabela_mestre"
     target_col: str = "consumo_aparente"
 
     # --- Diretório onde os resultados de cada execução são salvos ---

@@ -1,6 +1,6 @@
 # Steel Demand Forecast
 
-Projeto de previsão de demanda de aços longos no Brasil, combinando dados de fontes públicas do governo com arquivos manuais do setor siderúrgico. O pipeline ETL consolida séries temporais mensais em uma tabela mestre que serve de input para modelos de machine learning.
+Projeto de previsão de demanda de aços longos no Brasil, combinando dados de fontes públicas do governo com arquivos manuais do setor siderúrgico. O pipeline ETL persiste as camadas da arquitetura medalhão como tabelas Delta no Databricks (Unity Catalog, catálogo `steeldemand`) e consolida séries temporais mensais na tabela mestre `steeldemand.gold.tabela_mestre`, que serve de input para modelos de machine learning.
 
 ---
 
@@ -31,6 +31,7 @@ steel-demand-forecast/
 ├── ui/                    # Componentes Streamlit — um módulo por aba
 │
 ├── utils/
+│   ├── databricks_io.py   # Persistência no Databricks (Unity Catalog) via databricks-connect
 │   ├── transforms.py      # Funções de limpeza e transformação de dados
 │   └── viz.py             # Funções de formatação para visualizações
 │
@@ -42,9 +43,7 @@ steel-demand-forecast/
 │   └── exploracao_cno.ipynb
 │
 ├── dados/
-│   ├── raw/               # Arquivos manuais de entrada (não versionados)
-│   ├── silver/            # Saídas por fonte, prontas para análise (não versionadas)
-│   └── gold/              # Tabela mestre — input do modelo (não versionada)
+│   └── raw/               # Staging local dos arquivos manuais de entrada (não versionados)
 │
 └── docs/
     └── dicionario_de_dados.md   # Descrição de todas as fontes e colunas
@@ -73,6 +72,12 @@ steel-demand-forecast/
 # Instalar dependências com uv
 uv sync
 ```
+
+**Databricks (uma única vez):** as camadas bronze/silver/gold são gravadas no Unity Catalog via `databricks-connect`.
+
+1. Instale o [Databricks CLI](https://docs.databricks.com/dev-tools/cli/) e autentique: `databricks auth login --host <workspace-url>`
+2. Confira o nome do profile em `~/.databrickscfg` e ajuste `databricks.profile` no `config.yaml` (o compute padrão é serverless; `databricks.serverless: false` volta a exigir `cluster_id` no profile)
+3. Crie o catálogo no workspace: `CREATE CATALOG IF NOT EXISTS steeldemand`
 
 ### 1. Atualizar arquivos manuais
 
@@ -113,7 +118,7 @@ python run_etl.py tabela_mestre            # gera o input do modelo
 
 ### 3. Output
 
-A tabela mestre é salva em `dados/gold/tabela_mestre.xlsx` com ~143 observações mensais e 32 colunas (1 variável alvo + 31 features).
+Cada pipeline grava duas camadas no Databricks: os dados crus em `steeldemand.bronze.*` (arquivos manuais e respostas de API como chegam) e os dados transformados em `steeldemand.silver.*`. A tabela mestre é salva em `steeldemand.gold.tabela_mestre` com ~149 observações mensais e 32 colunas (1 variável alvo + 31 features). O mapa completo de tabelas está no [dicionário de dados](docs/dicionario_de_dados.md).
 
 ---
 
@@ -138,7 +143,8 @@ Cada treino gera uma sessão em `secoes/resultados_{timestamp}/` (modelo XGBoost
 
 Todos os parâmetros ficam em `config.yaml`:
 
-- **`paths`** — caminhos de entrada e saída de cada pipeline
+- **`paths`** — caminhos dos arquivos manuais de entrada (staging em `dados/raw/`)
+- **`databricks`** — profile do `~/.databrickscfg`, uso de serverless e catálogo de destino
 - **`filters`** — intervalo de datas (`date_start` / `date_end`)
 - **`api`** — códigos de séries do IPEA, BCB e SIDRA
 - **`geo`** — códigos de UF para coleta do SIDRA

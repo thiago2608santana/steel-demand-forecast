@@ -17,9 +17,16 @@ logger = logging.getLogger(__name__)
 FORCE_INCLUDE = ["consumo_lag_1", "consumo_lag_2", "consumo_ma3"]
 
 
-def carregar_tabela_mestre(path: str) -> pd.DataFrame:
-    """Lê a tabela mestre gold, garantindo 'data' como datetime ordenado."""
-    df = pd.read_excel(path, engine="openpyxl")
+def carregar_tabela_mestre(fonte: str = "gold.tabela_mestre") -> pd.DataFrame:
+    """Lê a tabela mestre gold do Databricks, com 'data' datetime ordenado.
+
+    Args:
+        fonte: Identificador `schema.tabela` dentro do catálogo do projeto.
+    """
+    from utils.databricks_io import ler_tabela
+
+    camada, tabela = fonte.split(".", 1)
+    df = ler_tabela(camada, tabela)
     df["data"] = pd.to_datetime(df["data"])
     return df.sort_values("data").reset_index(drop=True)
 

@@ -1,16 +1,15 @@
 """Aba 2 — Parâmetros do modelo e treinamento do XGBoost com Optuna."""
 import datetime as dt
-import os
 
 import numpy as np
 import streamlit as st
 
-from config import CFG
 from ml.parametros import ParametrosML
 from ml.persistencia import salvar_sessao
 from ml.treino import PipelineML
 from ui.dados import tabela_mestre_cached
 from ui.log_streamlit import capturar_logs
+from utils.databricks_io import nome_completo, tabela_existe
 
 DEFAULTS = ParametrosML()
 
@@ -149,17 +148,17 @@ def _treinar(params: ParametrosML) -> None:
 
 
 def render() -> None:
-    path_tabela = CFG["paths"]["tabela_mestre_output"]
-    if not os.path.exists(path_tabela):
+    tabela_gold = nome_completo("gold", "tabela_mestre")
+    if not tabela_existe("gold", "tabela_mestre"):
         st.error(
-            f"Tabela mestre não encontrada em `{path_tabela}`. "
+            f"Tabela mestre não encontrada no Databricks (`{tabela_gold}`). "
             "Gere-a na aba **Ingestão de dados** antes de treinar."
         )
         return
 
-    df = tabela_mestre_cached(path_tabela)
+    df = tabela_mestre_cached()
     st.caption(
-        f"Base: `{path_tabela}` — {df.shape[0]} meses "
+        f"Base: `{tabela_gold}` — {df.shape[0]} meses "
         f"({df['data'].min().date()} → {df['data'].max().date()})"
     )
 

@@ -1,29 +1,17 @@
 paths:
-  # Entradas (dados/raw)
+  # Entradas (dados/raw — staging local dos arquivos manuais)
   anfavea_input: "./dados/raw/anfavea_autoveiculos.xlsx"
   cno_input: "./dados/raw/cno.csv"
   performance_input: "./dados/raw/Performance-Mensal_2026.05.xls"
-  sidra_sinapi_raw: "./dados/raw/sidra_sinapi_m2.xlsx"
-  sidra_pim_pf_raw: "./dados/raw/sidra_pim_pf.xlsx"
 
-  # Saídas (dados/silver)
-  anfavea_output: "./dados/silver/anfavea_producao_veiculos.xlsx"
-  cno_output: "./dados/silver/gov_br_cno.xlsx"
-  performance_output: "./dados/silver/performance.xlsx"
-  ipea_selic_output: "./dados/silver/ipea_selic.xlsx"
-  ipea_fbc_output: "./dados/silver/ipea_fbc.xlsx"
-  ipea_cambio_output: "./dados/silver/ipea_cambio.xlsx"
-  bcb_selic_output: "./dados/silver/bc_sgs_projecao_selic.xlsx"
-  bcb_ipca_pib_output: "./dados/silver/bc_sgs_ipca_pib.xlsx"
-  bcb_credito_output: "./dados/silver/bc_sgs_operacoes_credito_industria.xlsx"
-  sidra_sinapi_output: "./dados/silver/sidra_sinapi_m2.xlsx"
-  sidra_pim_pf_output: "./dados/silver/sidra_pim_pf.xlsx"
-  sidra_ipp_output: "./dados/silver/sidra_ipp.xlsx"
-  sidra_pnad_output: "./dados/silver/sidra_pnad_ocupacao.xlsx"
-
-  # Saídas (dados/gold)
-  silver_dir: "./dados/silver"
-  tabela_mestre_output: "./dados/gold/tabela_mestre.xlsx"
+# Destino das tabelas (Unity Catalog / arquitetura medalhão):
+#   bronze — dados crus (arquivos manuais e respostas de API como chegam)
+#   silver — dados transformados por fonte
+#   gold   — tabela mestre consolidada
+databricks:
+  profile: "db-thiago-personal"
+  serverless: true          # usa serverless compute; troque por cluster_id no profile se preferir
+  catalog: "steeldemand"
 
 filters:
   date_start: "2012-12-31"

@@ -6,7 +6,8 @@ import logging
 
 import pandas as pd
 
-from utils.transforms import fill_missing, filter_by_date, salvar_excel, validar_output
+from utils.databricks_io import salvar_tabela
+from utils.transforms import fill_missing, filter_by_date, validar_output
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +15,9 @@ logger = logging.getLogger(__name__)
 def processar_cno(cfg: dict) -> pd.DataFrame:
     """Extrai, transforma e salva os dados mensais de área construída do CNO.
 
-    Lê o CSV do CNO, filtra registros do Brasil (excluindo área exterior),
-    agrega a área total por mês e unidade de medida, e persiste em dados/silver.
+    Lê o CSV do CNO, salva a cópia crua na camada bronze, filtra registros do
+    Brasil (excluindo área exterior), agrega a área total por mês e unidade de
+    medida, e persiste o resultado na camada silver do Databricks.
 
     Args:
         cfg: Dicionário de configuração.
@@ -24,7 +26,6 @@ def processar_cno(cfg: dict) -> pd.DataFrame:
         DataFrame com série temporal mensal de área construída por unidade.
     """
     path_input = cfg["paths"]["cno_input"]
-    path_output = cfg["paths"]["cno_output"]
     encoding = cfg["cno"]["encoding"]
     colunas = cfg["cno"]["colunas"]
     pais_filtro = cfg["cno"]["pais_filtro"]
@@ -33,6 +34,7 @@ def processar_cno(cfg: dict) -> pd.DataFrame:
 
     logger.info("Carregando CNO: %s", path_input)
     df = pd.read_csv(path_input, encoding=encoding)
+    salvar_tabela(df, "bronze", "cno")
 
     df = _selecionar_e_filtrar(df, colunas, pais_filtro, estado_excluir)
     df_pivot = _agregar_mensalmente(df)
@@ -40,7 +42,7 @@ def processar_cno(cfg: dict) -> pd.DataFrame:
     fill_missing(df_pivot)
 
     validar_output(df_pivot, "cno", min_linhas=24, colunas_obrigatorias=["Date", "m2"], date_col="Date")
-    salvar_excel(df_pivot, path_output)
+    salvar_tabela(df_pivot, "silver", "gov_br_cno")
     logger.info("CNO concluído.")
     return df_pivot
 

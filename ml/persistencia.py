@@ -105,7 +105,7 @@ def carregar_sessao(path_sessao: Path) -> ResultadoTreino:
     modelo = XGBRegressor()
     modelo.load_model(path_sessao / "modelo.json")
 
-    df_base = ml_features.carregar_tabela_mestre(params.path_tabela_mestre)
+    df_base = ml_features.carregar_tabela_mestre(params.fonte_tabela_mestre)
     df = ml_features.preparar_features_para_inferencia(df_base, params, feature_cols)
     splits = dividir_splits(df, params)
     predicoes = {s: modelo.predict(splits.X(s)) for s in SPLITS}
