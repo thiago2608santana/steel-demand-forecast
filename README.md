@@ -46,7 +46,8 @@ steel-demand-forecast/
 │   └── raw/               # Staging local dos arquivos manuais de entrada (não versionados)
 │
 └── docs/
-    └── dicionario_de_dados.md   # Descrição de todas as fontes e colunas
+    ├── dicionario_de_dados.md   # Descrição de todas as fontes e colunas
+    └── fluxo_ml.md              # Diagramas do fluxo de ML (pacote ml/)
 ```
 
 ---
@@ -157,3 +158,4 @@ Todos os parâmetros ficam em `config.yaml`:
 ## Documentação
 
 - [`docs/dicionario_de_dados.md`](docs/dicionario_de_dados.md) — descrição detalhada de todas as fontes, colunas e da tabela mestre
+- [`docs/fluxo_ml.md`](docs/fluxo_ml.md) — diagramas do pipeline de ML (`ml/`): treino, previsão recursiva, sessões e integração com a UI
